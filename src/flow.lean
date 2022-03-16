@@ -2,12 +2,15 @@ import tactic
 import data.real.basic
 import measure_theory.function.locally_integrable
 import measure_theory.measure.lebesgue
+import TechnicalStuff
 
 structure edgeflow := 
-  (fp : ℝ → ℝ)
+  (fp : ℝ →ₘ[real.measure_space.volume] ℝ)
   (h_fp_locint : measure_theory.locally_integrable fp stieltjes_function.id.measure)
-  (fm : ℝ → ℝ)
+  (h_fp_0_before_0 : ∀ᵐ θ, θ < 0 → fp θ = 0)
+  (fm : ℝ →ₘ[real.measure_space.volume] ℝ)
   (h_fm_locint : measure_theory.locally_integrable fm stieltjes_function.id.measure)
+  (h_fm_0_before_0 : ∀ᵐ θ, θ < 0 → fm θ = 0)
 
 namespace edgeflow
   variables (f : edgeflow)
@@ -19,12 +22,11 @@ namespace edgeflow
 
   def weak_flowconservation (τ : ℝ) : Prop := ∀ θ ≥ 0, f.Fm (θ + τ) ≤ f.Fp θ
 
-  def flow_respects_capacity (τ : ℝ) (ν : ℝ) : Prop := ∀ θ ≥ 0, f.fm (θ + τ) ≤ ν
-    -- TODO: Must only hold for almost all θ
+  def flow_respects_capacity (τ : ℝ) (ν : ℝ) : Prop := 
+    ∀ᵐ θ : ℝ, f.fm (θ + τ) ≤ ν
 
   def queue_operates_at_capacity (τ : ℝ) (ν : ℝ) : Prop := 
-    -- TODO: Must only hold for almost all θ
-    ∀ θ ≥ 0, if f.q τ θ > 0 then f.fm (θ + τ) = ν else f.fm (θ + τ) = min (f.fp θ) ν
+    ∀ᵐ θ : ℝ, if f.q τ θ > 0 then f.fm (θ + τ) = ν else f.fm (θ + τ) = min (f.fp θ) ν
 
   lemma weak_flowconservation_iff_queue_nonnegative (τ : ℝ) :
     weak_flowconservation f τ ↔ ∀ θ ≥ 0, f.q τ θ ≥ 0 :=
@@ -52,18 +54,16 @@ namespace edgeflow
   lemma respects_cap_of_queue_op_at_cap_im (ν : ℝ) (τ : ℝ): 
     queue_operates_at_capacity f τ ν → flow_respects_capacity f τ ν :=
   begin
-    intros h θ hθpos,
-    specialize h θ hθpos,
-    split_ifs at h,
+    apply ae_of_implies_and_ae,
+    intros x hqatcap,
+    split_ifs at hqatcap,
     {
-      -- Case of non-empty queue
-      linarith,
+      apply le_of_eq,
+      assumption,
     },
-    {
-      -- Case of empty queue
-      rw h,
-      apply min_le_right,
-    }
+    rw hqatcap,
+    exact min_le_right _ _,
   end
 
 end edgeflow
+

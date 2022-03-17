@@ -18,8 +18,8 @@ structure edgeflow :=
 namespace edgeflow
   variables (f : edgeflow)
 
-  noncomputable def Fp : ℝ → ℝ := λ θ, ∫ z in 0..θ, f.fp z
-  noncomputable def Fm : ℝ → ℝ := λ θ, ∫ z in 0..θ, f.fm z
+  noncomputable def Fp : ℝ → ℝ := λ θ, ∫ z in 0..θ, f.fp z ∂μ
+  noncomputable def Fm : ℝ → ℝ := λ θ, ∫ z in 0..θ, f.fm z ∂μ
 
   noncomputable def q (τ : ℝ) : ℝ → ℝ := λ θ, (f.Fp θ) - (f.Fm (θ + τ))
 
@@ -77,12 +77,31 @@ namespace edgeflow
     queue_operates_at_capacity f τ ν → queue_operates_at_capacity_cum f τ ν :=
   begin
     intros h θ,
-    have hq_depletes_slow : ∀ θ', θ ≤ θ' ∧ θ' < θ + (f.q ν θ)/ν → f.q ν θ' > 0 :=
+    have hq_depletes_slow : ∀ θ', θ ≤ θ' ∧ θ' < θ + (f.q τ θ)/ν → f.q τ θ' > 0 :=
     begin
       sorry
     end,
-    rw ← interval_integral.integral_add_adjacent_intervals (interval_integrable_of_locally_integrable f 0 (θ + τ))
-    sorry,
+    have h : ∀ᵐ z : ℝ ∂μ, z ∈ set.interval_oc (θ + τ) (θ + (f.q τ θ)/ν + τ) → f.fm z = (λ θ, ν) z 
+      := sorry,
+    have hνpos : ν ≠ 0 
+      := sorry,
+    show ∫ z in 0..θ + f.c τ ν θ, f.fm z ∂μ = f.Fp θ,
+    rw ← interval_integral.integral_add_adjacent_intervals 
+            (interval_integrable_of_locally_integrable f.fm 0 (θ + τ) f.h_fm_locint)
+            (interval_integrable_of_locally_integrable f.fm (θ + τ) (θ + f.c τ ν θ) f.h_fm_locint),
+    show f.Fm (θ + τ) + ∫ z in θ + τ..θ + f.c τ ν θ, f.fm z ∂μ = f.Fp θ,
+    show f.Fm (θ + τ) + ∫ z in θ + τ..θ + (τ + (f.q τ θ) / ν), f.fm z ∂μ = f.Fp θ,
+    rw add_comm τ _,
+    rw ← add_assoc,
+    rw interval_integral.integral_congr_ae h,
+    simp,
+    show f.Fm (θ + τ) + ∫ (x : ℝ) in θ + τ..θ + f.q τ θ / ν + τ, ν = f.Fp θ,
+    rw interval_integral.integral_const,
+    calc f.Fm (θ + τ) + (θ + f.q τ θ / ν + τ - (θ + τ)) • ν 
+                    = f.Fm (θ + τ) + (f.q τ θ / ν) • ν : by ring_nf
+                ... = f.Fm (θ + τ) + f.q τ θ : by finish
+                ... = f.Fm (θ + τ) + (f.Fp θ - f.Fm (θ + τ)) : by refl
+                ... = f.Fp θ : by ring_nf,
   end
 
 end edgeflow

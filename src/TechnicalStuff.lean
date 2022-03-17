@@ -30,3 +30,9 @@ lemma interval_integrable_of_locally_integrable (f: ℝ → ℝ) (a : ℝ) (b : 
 begin
   sorry,
 end
+
+lemma lebesgue_measure_translation_invariant {μ : measure_theory.outer_measure ℝ} (p : ℝ → Prop) {x : ℝ} :
+  μ {y : ℝ | p y} = μ {y : ℝ | p (y - x)} :=
+begin
+  sorry,
+end
